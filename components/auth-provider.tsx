@@ -22,44 +22,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("healthagg_user")
+    const stored = localStorage.getItem("healthagg_user")
     if (stored) {
       try {
         setUser(JSON.parse(stored))
       } catch {
-        sessionStorage.removeItem("healthagg_user")
+        localStorage.removeItem("healthagg_user")
       }
     }
   }, [])
 
-  const signIn = async (name: string, email: string, password: string): Promise<boolean> => {
+  const signIn = async (_name: string, email: string, password: string): Promise<boolean> => {
     if (!email || !password) return false
-    const stored = sessionStorage.getItem("healthagg_accounts")
+    const stored = localStorage.getItem("healthagg_accounts")
     const accounts: Record<string, { name: string; password: string }> = stored ? JSON.parse(stored) : {}
     const account = accounts[email]
     if (!account || account.password !== password) return false
     const u = { name: account.name, email }
     setUser(u)
-    sessionStorage.setItem("healthagg_user", JSON.stringify(u))
+    localStorage.setItem("healthagg_user", JSON.stringify(u))
     return true
   }
 
   const signUp = async (name: string, email: string, password: string): Promise<boolean> => {
     if (!name || !email || !password) return false
-    const stored = sessionStorage.getItem("healthagg_accounts")
+    const stored = localStorage.getItem("healthagg_accounts")
     const accounts: Record<string, { name: string; password: string }> = stored ? JSON.parse(stored) : {}
     if (accounts[email]) return false
     accounts[email] = { name, password }
-    sessionStorage.setItem("healthagg_accounts", JSON.stringify(accounts))
+    localStorage.setItem("healthagg_accounts", JSON.stringify(accounts))
     const u = { name, email }
     setUser(u)
-    sessionStorage.setItem("healthagg_user", JSON.stringify(u))
+    localStorage.setItem("healthagg_user", JSON.stringify(u))
     return true
   }
 
   const signOut = () => {
     setUser(null)
-    sessionStorage.removeItem("healthagg_user")
+    localStorage.removeItem("healthagg_user")
   }
 
   return (

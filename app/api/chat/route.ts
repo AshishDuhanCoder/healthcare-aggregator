@@ -14,7 +14,7 @@ const clinicalSchema = z.object({
   severityAssessment: z.object({
     level: z.enum(["Mild", "Moderate", "Severe"]),
     emergencyRisk: z.boolean(),
-    redFlagSymptoms: z.array(z.string()).describe("Red flag symptoms to watch for"),
+    redFlagSymptoms: z.array(z.string()).describe("Red flag symptoms SPECIFIC to the reported condition that would indicate dangerous progression. Must be unique to the differential diagnoses listed, NOT generic emergency signs."),
   }),
   immediateCare: z.object({
     lifestyleRemedies: z.array(z.string()).describe("Evidence-based home remedies and lifestyle advice"),
@@ -37,34 +37,36 @@ const clinicalSchema = z.object({
       reason: z.string(),
     }),
   ).describe("Blood tests, imaging, or specialist referrals with reasons"),
-  emergencySigns: z.array(z.string()).describe("When to seek immediate medical attention"),
-  preventiveAdvice: z.array(z.string()).describe("Long-term prevention strategies"),
+  emergencySigns: z.array(z.string()).describe("Specific warning signs unique to THIS condition that warrant immediate emergency care. Describe how the reported symptoms could dangerously escalate."),
+  preventiveAdvice: z.array(z.string()).describe("Evidence-based long-term prevention strategies specific to the diagnosed conditions, including dietary, lifestyle, and screening recommendations."),
   specialist: z.string().describe("Recommended specialist for consultation"),
   consultationReason: z.string().describe("Why consulting a primary care physician is essential, covering their role in initial evaluation, differential diagnosis, ruling out red flags, and coordinating specialist referrals"),
   confidence: z.number().min(0).max(100),
 })
 
-const CLINICAL_SYSTEM_PROMPT = `You are an AI Clinical Decision Support Assistant designed to generate structured, doctor-style medical guidance based on user-reported symptoms.
+const CLINICAL_SYSTEM_PROMPT = `You are an AI Clinical Decision Support Assistant with expertise equivalent to an experienced general physician. Your task is to generate a structured, doctor-style medical consultation note based on the patient's reported symptoms.
 
-You must respond in a professional clinical format similar to a qualified physician consultation note.
+CRITICAL ACCURACY REQUIREMENTS:
+- Every field in your response MUST be specifically tailored to the exact symptoms described. Do NOT reuse generic templates.
+- The "differentialDiagnosis" MUST list conditions that are medically relevant to THIS specific symptom set, with accurate probability rankings based on epidemiological prevalence.
+- The "redFlagSymptoms" MUST be specific warning signs that are clinically associated with the conditions in your differential -- NOT generic emergency signs.
+- The "otcMedications" MUST be pharmacologically appropriate for the described symptoms. Include the exact mechanism of action relevance (e.g., NSAIDs for inflammatory pain, antihistamines for allergic symptoms, antacids for acid reflux).
+- The "recommendedTests" MUST be diagnostically relevant to confirm or rule out the specific differential diagnoses you listed.
+- The "emergencySigns" MUST describe progression patterns specific to the conditions discussed, not generic emergency lists.
+- The "preventiveAdvice" MUST be evidence-based strategies specific to preventing recurrence of the described condition.
+- The "consultationReason" MUST explain why a physician is needed for THIS specific condition, referencing the differential diagnoses and what clinical examination findings would help distinguish them.
 
-MANDATORY RULES:
-- Avoid overconfidence. Use language like "could suggest," "possibilities include," "may indicate."
-- NEVER claim definitive diagnosis.
+STRICT RULES:
+- Use language like "could suggest," "possibilities include," "may indicate." NEVER claim definitive diagnosis.
 - NEVER prescribe restricted/controlled medications, steroids, antibiotics, or Schedule H/H1 medicines.
-- Provide only safe OTC suggestions with full dosage, contraindication, and side effect info.
-- Clearly state red-flag conditions and emergency signs.
-- Recommend lab tests where appropriate with clear reasoning.
-- Include dosage only for OTC medicines.
-- Include contraindication warnings for every OTC medicine.
-- Include when to see a doctor urgently.
-- If symptoms indicate emergency (chest pain, stroke signs, severe bleeding, breathing difficulty), immediately recommend emergency care.
-- If child, pregnant woman, elderly, or chronic disease patient, add extra caution.
-- If dosage uncertainty, say "Consult physician for exact dosage."
-- Use medical terminology with patient-friendly explanations.
-- Always state this is for educational purposes only and not a substitute for professional medical care.
+- Provide only safe OTC suggestions with full dosage, contraindication, and side effect information.
+- If symptoms indicate emergency (chest pain, stroke signs, severe bleeding, breathing difficulty), set emergencyRisk to true and recommend immediate emergency care.
+- For children, pregnant women, elderly, or chronic disease patients, add extra caution notes in contraindications.
+- If dosage is uncertain, state "Consult physician for exact dosage."
+- Use medical terminology with patient-friendly explanations in parentheses.
+- State clearly this is for educational purposes only and not a substitute for professional medical care.
 
-TONE: Professional, Clinical, Reassuring, Clear. No casual language. No emojis. No generic vague responses.`
+TONE: Professional, Clinical, Reassuring, Clear. No casual language. No emojis. Every response must feel like a unique consultation.`
 
 // Fallback clinical database for when AI is unavailable
 const FALLBACK_DATABASE: Record<string, any> = {
@@ -162,14 +164,12 @@ export async function POST(req: Request) {
     // If user provided their own API key, use it with the specified provider
     if (apiKey) {
       try {
-        let modelString = "google/gemini-2.5-flash-preview-05-20"
-
         if (provider === "gemini") {
           const google = createGoogleGenerativeAI({ apiKey })
           const { object } = await generateObject({
             model: google("gemini-2.5-flash-preview-05-20"),
             schema: clinicalSchema,
-            prompt: `${CLINICAL_SYSTEM_PROMPT}\n\nPatient's reported symptoms: "${userSymptoms}"`,
+            prompt: `${CLINICAL_SYSTEM_PROMPT}\n\nPatient's reported symptoms: "${userSymptoms}"\n\nIMPORTANT: Analyze ONLY the symptoms described above. Every field must be uniquely relevant to these specific symptoms. Do not use generic filler. The differential diagnosis, red flags, medications, tests, and emergency signs must all be directly connected to the reported condition.`,
           })
           return new Response(JSON.stringify(object), {
             headers: { "Content-Type": "application/json" },
@@ -178,9 +178,9 @@ export async function POST(req: Request) {
 
         // For other providers via gateway
         const { object } = await generateObject({
-          model: modelString,
+          model: "google/gemini-2.5-flash-preview-05-20",
           schema: clinicalSchema,
-          prompt: `${CLINICAL_SYSTEM_PROMPT}\n\nPatient's reported symptoms: "${userSymptoms}"`,
+          prompt: `${CLINICAL_SYSTEM_PROMPT}\n\nPatient's reported symptoms: "${userSymptoms}"\n\nIMPORTANT: Analyze ONLY the symptoms described above. Every field must be uniquely relevant to these specific symptoms. Do not use generic filler. The differential diagnosis, red flags, medications, tests, and emergency signs must all be directly connected to the reported condition.`,
         })
         return new Response(JSON.stringify(object), {
           headers: { "Content-Type": "application/json" },
@@ -216,7 +216,7 @@ export async function POST(req: Request) {
       const { object } = await generateObject({
         model: "google/gemini-2.5-flash-preview-05-20",
         schema: clinicalSchema,
-        prompt: `${CLINICAL_SYSTEM_PROMPT}\n\nPatient's reported symptoms: "${userSymptoms}"`,
+        prompt: `${CLINICAL_SYSTEM_PROMPT}\n\nPatient's reported symptoms: "${userSymptoms}"\n\nIMPORTANT: Analyze ONLY the symptoms described above. Every field must be uniquely relevant to these specific symptoms. Do not use generic filler. The differential diagnosis, red flags, medications, tests, and emergency signs must all be directly connected to the reported condition.`,
       })
       return new Response(JSON.stringify(object), {
         headers: { "Content-Type": "application/json" },
