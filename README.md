@@ -14,7 +14,7 @@ Any changes you make to your deployed app will be automatically pushed to this r
 
 Your project is live at:
 
-**[https://vercel.com/ashishgohana2001-7315s-projects/v0-healthcare-aggregator-blueprint](https://vercel.com/ashishgohana2001-7315s-projects/v0-healthcare-aggregator-blueprint)**
+**https://v0-healthagg.vercel.app/**
 
 ## Build your app
 
