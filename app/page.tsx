@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Stethoscope, Beaker, Pill, Shield, ArrowRight, Clock, MapPin } from "lucide-react"
+import { Search, Stethoscope, Beaker, Pill, Shield, ArrowRight, Star, Clock, MapPin } from "lucide-react"
 import { SymptomChecker } from "@/components/symptom-checker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
