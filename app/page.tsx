@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Stethoscope, Beaker, Pill, Shield, ArrowRight, Star, Clock, MapPin } from "lucide-react"
+import { Search, Stethoscope, Beaker, Pill, Shield, ArrowRight, Clock, MapPin } from "lucide-react"
 import { SymptomChecker } from "@/components/symptom-checker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ComparisonView } from "@/components/comparison-view"
+import { FindCareResults } from "@/components/find-care-results"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { SignInGate } from "@/components/sign-in-gate"
@@ -16,6 +17,8 @@ import { useAuth } from "@/components/auth-provider"
 export default function LandingPage() {
   const { isAuthenticated } = useAuth()
   const [location, setLocation] = useState<string>("Detecting location...")
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
 
@@ -24,15 +27,17 @@ export default function LandingPage() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          const { latitude, longitude } = position.coords
+          setCoords({ lat: latitude, lon: longitude })
           try {
             const res = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`,
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
             )
             const data = await res.json()
             const city = data.address.city || data.address.town || data.address.village || "Unknown City"
             setLocation(city)
           } catch {
-            setLocation("Location Access Denied")
+            setLocation("Location Available")
           }
         },
         () => setLocation("Location Access Denied"),
@@ -43,11 +48,17 @@ export default function LandingPage() {
   }, [isAuthenticated])
 
   const handleFindCare = () => {
+    if (!coords) {
+      alert("Please allow location access to find care providers near you.")
+      return
+    }
     setIsSearching(true)
+    setShowResults(false)
+    // Small delay for UX feedback
     setTimeout(() => {
       setIsSearching(false)
       setShowResults(true)
-    }, 1200)
+    }, 400)
   }
 
   // Sign-in gate: show sign-in screen if not authenticated
@@ -81,6 +92,9 @@ export default function LandingPage() {
                   <Input
                     placeholder="Search doctors, symptoms, or labs..."
                     className="pl-10 h-12 border-none shadow-none focus-visible:ring-0 text-base"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleFindCare() }}
                   />
                 </div>
                 <div className="flex items-center gap-2 border-l border-border pl-4 pr-2 w-full md:w-auto">
@@ -122,35 +136,12 @@ export default function LandingPage() {
         </section>
 
         {/* Conditional Results Display */}
-        {showResults && (
-          <section className="py-12 bg-card animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="container px-4 mx-auto">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-foreground">Recommended for {location}</h2>
-                <Badge variant="outline">Showing Top 3 Results</Badge>
-              </div>
-              <div className="grid md:grid-cols-3 gap-6">
-                {[
-                  { name: "City Care Clinic", type: "Multispeciality", rating: 4.8 },
-                  { name: "Advanced Lab Hub", type: "Diagnostics", rating: 4.9 },
-                  { name: "Wellness Pharmacy", type: "24/7 Meds", rating: 4.7 },
-                ].map((item, i) => (
-                  <Card key={i} className="hover:border-primary/50 transition-colors">
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <h3 className="font-bold text-lg text-foreground">{item.name}</h3>
-                        <Badge className="bg-green-50 text-green-700 border-green-200">Open Now</Badge>
-                      </div>
-                      <p className="text-muted-foreground text-sm mb-4">{item.type} - Verified</p>
-                      <div className="flex items-center gap-1 text-yellow-500 text-sm font-bold">
-                        <Star className="h-4 w-4 fill-current" /> {item.rating} (1.2k+ reviews)
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </section>
+        {showResults && coords && (
+          <FindCareResults
+            query={searchQuery}
+            coords={coords}
+            locationName={location}
+          />
         )}
 
         {/* Quick Services */}
