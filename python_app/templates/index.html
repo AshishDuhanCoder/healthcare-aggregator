@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block body %}
+<!-- Navbar -->
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-border">
+  <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <div class="bg-primary p-1.5 rounded-lg">
+        <i class="fas fa-heartbeat text-white text-lg"></i>
+      </div>
+      <span class="text-xl font-bold tracking-tight text-foreground">HealthAgg</span>
+    </a>
+    <div class="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+      <a href="#" class="hover:text-primary transition-colors">Find Doctors</a>
+      <a href="#" class="hover:text-primary transition-colors">Lab Tests</a>
+      <a href="#" class="hover:text-primary transition-colors">Medicines</a>
+      <a href="#symptom-checker" class="hover:text-primary transition-colors">AI Checker</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="hidden md:flex items-center gap-2 text-sm text-foreground">
+        <div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <i class="fas fa-user text-primary text-xs"></i>
+        </div>
+        <span class="font-medium">{{ user_name }}</span>
+      </div>
+      <a href="/logout" class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition px-3 py-1.5 rounded-xl hover:bg-muted">
+        <i class="fas fa-sign-out-alt text-xs"></i>
+        <span class="hidden md:inline">Sign Out</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main class="flex-grow pt-16">
+  <!-- Hero Section -->
+  <section class="relative pt-24 pb-16 md:pt-40 md:pb-24 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center">
+        <span class="inline-block mb-4 px-4 py-1 text-sm font-medium rounded-full bg-muted text-muted-foreground border border-border">
+          Neutral &amp; Independent - Price Comparison
+        </span>
+        <h1 class="text-4xl md:text-6xl font-bold tracking-tight text-foreground mb-6" style="text-wrap:balance;">
+          Your Health, Our Priority. <span class="text-primary">Compare &amp; Save.</span>
+        </h1>
+        <p class="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+          Find the best doctors, labs, and medicines at the lowest prices. India's first neutral healthcare aggregator powered by AI.
+        </p>
+
+        <!-- Search Bar -->
+        <div class="flex flex-col md:flex-row items-center gap-3 p-2 bg-card rounded-2xl shadow-xl border border-border max-w-3xl mx-auto">
+          <div class="relative flex-1 w-full">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></i>
+            <input id="care-search" type="text" placeholder="Search doctors, symptoms, or labs..."
+              class="w-full h-12 pl-10 pr-4 border-none bg-transparent text-foreground text-base outline-none" />
+          </div>
+          <div class="flex items-center gap-2 border-l border-border pl-4 pr-2 w-full md:w-auto">
+            <i class="fas fa-map-marker-alt text-primary animate-pulse-slow"></i>
+            <span id="location-text" class="text-muted-foreground font-medium text-sm whitespace-nowrap min-w-[120px] text-left">
+              Detecting location...
+            </span>
+          </div>
+          <button id="find-care-btn" onclick="handleFindCare()"
+            class="w-full md:w-auto px-8 h-12 rounded-xl text-base font-semibold bg-primary text-white hover:bg-primary/90 transition whitespace-nowrap">
+            Find Care
+          </button>
+        </div>
+
+        <div class="mt-8 flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+          <div class="flex items-center gap-2"><i class="fas fa-shield-alt text-accent"></i><span>Verified Partners</span></div>
+          <div class="flex items-center gap-2"><i class="fas fa-clock text-accent"></i><span>24/7 Support</span></div>
+          <div class="flex items-center gap-2"><i class="fas fa-star text-accent"></i><span>4.8/5 Rating</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="absolute top-0 right-0 -z-10 w-[500px] h-[500px] bg-primary-50/50 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 left-0 -z-10 w-[500px] h-[500px] bg-accent-50/50 rounded-full blur-3xl"></div>
+  </section>
+
+  <!-- Find Care Results (injected by JS) -->
+  <section id="care-results" class="hidden py-12 bg-card slide-up">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+        <div>
+          <h2 id="results-title" class="text-2xl font-bold text-foreground">Care Options</h2>
+          <p id="results-subtitle" class="text-sm text-muted-foreground mt-1"></p>
+        </div>
+        <span id="results-badge" class="inline-block px-3 py-1 text-xs font-semibold rounded-full border border-border text-muted-foreground"></span>
+      </div>
+
+      <!-- Radius Controls -->
+      <div class="flex flex-wrap items-center gap-2 mb-8">
+        <span class="text-sm font-medium text-muted-foreground mr-1">Search radius:</span>
+        <button onclick="changeRadius(10000)" data-radius="10000" class="radius-btn px-4 py-1.5 text-xs font-semibold rounded-full border transition bg-primary text-white border-primary">10 km</button>
+        <button onclick="changeRadius(20000)" data-radius="20000" class="radius-btn px-4 py-1.5 text-xs font-semibold rounded-full border transition bg-white text-foreground border-border hover:border-primary">20 km</button>
+        <button onclick="changeRadius(50000)" data-radius="50000" class="radius-btn px-4 py-1.5 text-xs font-semibold rounded-full border transition bg-white text-foreground border-border hover:border-primary">50 km</button>
+        <button onclick="changeRadius(100000)" data-radius="100000" class="radius-btn px-4 py-1.5 text-xs font-semibold rounded-full border transition bg-white text-foreground border-border hover:border-primary">100 km</button>
+      </div>
+
+      <!-- Loading -->
+      <div id="care-loading" class="hidden flex flex-col items-center justify-center py-16 gap-4">
+        <div class="spinner"></div>
+        <p class="text-muted-foreground font-medium">Scanning healthcare providers...</p>
+      </div>
+
+      <!-- Error -->
+      <div id="care-error" class="hidden flex items-center gap-3 p-4 bg-red-50 rounded-xl border border-red-200 mb-6">
+        <i class="fas fa-exclamation-triangle text-destructive"></i>
+        <p id="care-error-text" class="text-sm text-destructive font-medium"></p>
+        <button onclick="fetchCareProviders()" class="ml-auto px-3 py-1 text-xs font-semibold rounded-lg border border-border hover:bg-muted transition">Retry</button>
+      </div>
+
+      <!-- No Results -->
+      <div id="care-empty" class="hidden text-center py-16 space-y-4">
+        <i class="fas fa-map-marker-alt text-muted-foreground text-4xl"></i>
+        <h3 class="text-lg font-semibold text-foreground">No providers found</h3>
+        <p class="text-muted-foreground text-sm max-w-md mx-auto">Try expanding your search radius or modifying your search terms.</p>
+      </div>
+
+      <!-- Provider Cards -->
+      <div id="care-cards" class="grid gap-4"></div>
+
+      <!-- Show More -->
+      <div id="show-more-wrap" class="hidden flex justify-center mt-8">
+        <button onclick="showMoreProviders()" class="flex items-center gap-2 px-8 py-2.5 text-sm font-semibold rounded-full border border-border hover:border-primary hover:text-primary transition">
+          <i class="fas fa-chevron-down text-xs"></i>
+          <span id="show-more-text">Show More Providers</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Services -->
+  <section class="py-12 bg-muted/30">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% set services = [
+          ("fa-stethoscope", "Find Doctors", "bg-blue-50 text-blue-600"),
+          ("fa-flask", "Lab Tests", "bg-teal-50 text-teal-600"),
+          ("fa-pills", "Medicines", "bg-purple-50 text-purple-600"),
+          ("fa-shield-alt", "Health Plans", "bg-emerald-50 text-emerald-600"),
+        ] %}
+        {% for icon, label, color in services %}
+        <div class="bg-card border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer group rounded-2xl p-6 flex flex-col items-center text-center">
+          <div class="p-4 rounded-2xl mb-4 transition-transform group-hover:scale-110 {{ color }}">
+            <i class="fas {{ icon }} text-2xl"></i>
+          </div>
+          <h3 class="font-semibold text-foreground">{{ label }}</h3>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- AI Section -->
+  <section id="symptom-checker" class="py-20">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex flex-col lg:flex-row items-start gap-12">
+        <!-- Left Info -->
+        <div class="flex-1 lg:sticky lg:top-32 space-y-6">
+          <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full border border-primary/20 bg-primary-50 text-primary">
+            Powered by Clinical NLP
+          </span>
+          <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+            Not Just Search.<br /><span class="text-accent">Clinical Intelligence.</span>
+          </h2>
+          <p class="text-lg text-muted-foreground leading-relaxed">
+            Our AI-driven clinical decision support system analyzes your symptoms to provide structured medical guidance, differential diagnosis, and specialist recommendations.
+          </p>
+          <ul class="space-y-4">
+            {% set features = [
+              "Structured clinical assessment with differential diagnosis",
+              "Safe OTC medication suggestions with full dosage info",
+              "Recommended diagnostic tests with clinical reasoning",
+              "Emergency risk detection and red flag identification",
+            ] %}
+            {% for item in features %}
+            <li class="flex items-start gap-3">
+              <div class="mt-1 h-5 w-5 rounded-full bg-accent/10 flex items-center justify-center text-accent">
+                <i class="fas fa-arrow-right text-[10px]"></i>
+              </div>
+              <span class="text-foreground/80 font-medium">{{ item }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- Right: Symptom Checker -->
+        <div class="flex-1 w-full space-y-12">
+          <!-- Symptom Checker Card -->
+          <div id="checker-input" class="bg-card rounded-2xl shadow-2xl border border-primary/10 overflow-hidden">
+            <div class="bg-primary/5 border-b border-primary/10 p-6">
+              <div class="flex items-center justify-between mb-2">
+                <span class="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-full bg-primary text-white">
+                  <i class="fas fa-sparkles text-[10px]"></i> CLINICAL COMPANION
+                </span>
+                <button onclick="toggleApiKeyModal()" id="api-key-status-btn"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-border hover:bg-muted transition">
+                  <i class="fas fa-key text-xs"></i>
+                  <span id="api-key-label">Add API Key</span>
+                </button>
+              </div>
+              <h3 class="text-2xl font-bold text-foreground">AI Clinical Decision Support</h3>
+              <p class="text-muted-foreground text-sm mt-1">
+                Describe your symptoms for a structured clinical assessment including differential diagnosis, recommended tests, OTC medication options, and specialist referral guidance.
+              </p>
+            </div>
+            <div class="p-6">
+              <form onsubmit="analyzeSymptoms(event)" class="space-y-6">
+                <textarea id="symptoms-input" rows="4" placeholder="Describe your symptoms in detail. Include duration, severity, and any triggers..."
+                  class="w-full p-4 bg-muted/30 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm resize-none transition"></textarea>
+                <div class="flex flex-col sm:flex-row gap-3">
+                  <button type="submit" id="analyze-btn"
+                    class="flex-1 flex items-center justify-center gap-2 h-12 rounded-xl font-bold bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 transition">
+                    <i class="fas fa-brain"></i>
+                    <span>Analyze Symptoms</span>
+                  </button>
+                </div>
+              </form>
+              <div class="flex items-start gap-2 text-[10px] text-muted-foreground mt-6 leading-tight">
+                <i class="fas fa-exclamation-circle mt-0.5 flex-shrink-0"></i>
+                <p>This AI guidance is for informational purposes only and does not replace a licensed medical professional.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results (hidden until analysis) -->
+          <div id="checker-results" class="hidden slide-up space-y-4">
+            <button onclick="resetChecker()" class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition mb-2">
+              <i class="fas fa-chevron-left text-xs"></i> New Analysis
+            </button>
+            <div id="results-container" class="bg-card rounded-2xl shadow-2xl border border-primary/10 overflow-hidden"></div>
+          </div>
+
+          <!-- Comparison View (static) -->
+          <div class="p-8 bg-card rounded-3xl border border-border shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-bold text-foreground">Doctor Availability &amp; Price Comparison</h3>
+              <span class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-accent/20 bg-accent-50 text-accent">
+                <i class="fas fa-arrow-trend-down text-[10px]"></i> Best Price: &#8377;650
+              </span>
+            </div>
+            <div class="grid gap-4">
+              {% set doctors = [
+                ("Practo", "Dr. Sameer Kulkarni", "Cardiologist", 800, 4.8, 245, "Today, 4:30 PM", true),
+                ("Apollo 24x7", "Dr. Ananya Sharma", "Cardiologist", 1200, 4.9, 512, "Tomorrow, 10:00 AM", true),
+                ("Healthians", "Dr. Rajat Verma", "Cardiologist", 650, 4.6, 189, "Today, 6:00 PM", false),
+              ] %}
+              {% for provider, doctor, spec, price, rating, reviews, avail, verified in doctors %}
+              <div class="border border-border hover:border-primary/30 rounded-2xl transition-colors shadow-sm overflow-hidden group">
+                <div class="flex flex-col md:flex-row">
+                  <div class="p-6 flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-muted rounded text-muted-foreground">{{ provider }}</span>
+                      {% if verified %}<i class="fas fa-shield-alt text-accent text-sm"></i>{% endif %}
+                    </div>
+                    <h4 class="text-lg font-bold text-foreground mb-1">{{ doctor }}</h4>
+                    <p class="text-sm text-muted-foreground mb-4">{{ spec }}</p>
+                    <div class="flex flex-wrap gap-4 text-sm font-medium">
+                      <div class="flex items-center gap-1 text-yellow-500">
+                        <i class="fas fa-star text-xs"></i> {{ rating }}
+                        <span class="text-muted-foreground font-normal">({{ reviews }})</span>
+                      </div>
+                      <div class="flex items-center gap-1 text-foreground/70">
+                        <i class="fas fa-clock text-xs"></i> {{ avail }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="p-6 bg-muted/20 md:w-48 flex flex-col justify-center items-center border-t md:border-t-0 md:border-l border-border">
+                    <div class="text-center mb-4">
+                      <span class="text-2xl font-bold text-foreground">&#8377;{{ price }}</span>
+                      <p class="text-xs text-muted-foreground">Consultation Fee</p>
+                    </div>
+                    <button class="w-full py-2.5 rounded-xl font-bold bg-primary text-white hover:bg-primary/90 transition-transform group-hover:scale-105 text-sm">
+                      Book Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer class="bg-muted/50 border-t border-border pt-16 pb-8">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <div class="bg-primary p-1.5 rounded-lg"><i class="fas fa-heartbeat text-white text-sm"></i></div>
+          <span class="text-xl font-bold tracking-tight text-foreground">HealthAgg</span>
+        </div>
+        <p class="text-sm text-muted-foreground leading-relaxed">India's first neutral healthcare aggregator. Comparing doctors, labs, and medicines to bring you the best care at the best price.</p>
+        <div class="flex gap-4">
+          <a href="#" class="text-muted-foreground hover:text-primary"><i class="fab fa-twitter text-lg"></i></a>
+          <a href="#" class="text-muted-foreground hover:text-primary"><i class="fab fa-linkedin text-lg"></i></a>
+          <a href="#" class="text-muted-foreground hover:text-primary"><i class="fab fa-github text-lg"></i></a>
+        </div>
+      </div>
+      <div>
+        <h4 class="font-bold mb-4 text-foreground">Services</h4>
+        <ul class="space-y-2 text-sm text-muted-foreground">
+          <li><a href="#" class="hover:text-primary">Doctor Search</a></li>
+          <li><a href="#" class="hover:text-primary">Lab Test Comparison</a></li>
+          <li><a href="#" class="hover:text-primary">Medicine Finder</a></li>
+          <li><a href="#" class="hover:text-primary">AI Symptom Checker</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold mb-4 text-foreground">Company</h4>
+        <ul class="space-y-2 text-sm text-muted-foreground">
+          <li><a href="#" class="hover:text-primary">About Us</a></li>
+          <li><a href="#" class="hover:text-primary">Partner with Us</a></li>
+          <li><a href="#" class="hover:text-primary">Careers</a></li>
+          <li><a href="#" class="hover:text-primary">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold mb-4 text-foreground">Legal</h4>
+        <ul class="space-y-2 text-sm text-muted-foreground">
+          <li><a href="#" class="hover:text-primary">Privacy Policy</a></li>
+          <li><a href="#" class="hover:text-primary">Terms of Service</a></li>
+          <li><a href="#" class="hover:text-primary">Cookie Policy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
+      <p class="text-xs text-muted-foreground">&copy; 2026 HealthAgg Technologies Pvt Ltd. All rights reserved.</p>
+      <div class="flex gap-6 text-xs text-muted-foreground">
+        <a href="#" class="hover:text-primary">Health Articles</a>
+        <a href="#" class="hover:text-primary">Doctor FAQ</a>
+        <a href="#" class="hover:text-primary">Sitemap</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- API Key Modal -->
+<div id="api-key-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+  <div class="bg-card rounded-2xl shadow-2xl border border-primary/10 w-full max-w-md overflow-hidden">
+    <div class="bg-primary/5 border-b border-primary/10 p-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-key text-primary"></i>
+          <h3 class="text-xl font-bold text-foreground">Configure AI API Key</h3>
+        </div>
+        <button onclick="toggleApiKeyModal()" class="text-muted-foreground hover:text-foreground"><i class="fas fa-times"></i></button>
+      </div>
+      <p class="text-sm text-muted-foreground mt-2">
+        Add your Google Gemini API key for enhanced analysis. Get a free key from
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="text-primary font-semibold hover:underline">Google AI Studio</a>.
+      </p>
+    </div>
+    <div class="p-6 space-y-4">
+      <div id="api-key-connected" class="hidden">
+        <div class="flex items-center gap-3 p-4 bg-green-50 rounded-xl border border-green-200">
+          <i class="fas fa-check-circle text-green-600"></i>
+          <div>
+            <p class="font-semibold text-green-800 text-sm">API Key Connected</p>
+            <p id="api-key-preview" class="text-xs text-green-700"></p>
+          </div>
+        </div>
+        <button onclick="removeApiKey()" class="w-full mt-4 py-2.5 rounded-xl font-semibold border border-border hover:bg-muted transition text-sm">
+          Remove API Key
+        </button>
+      </div>
+      <div id="api-key-form" class="">
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-foreground">Google Gemini API Key</label>
+          <input type="password" id="api-key-input" placeholder="AIzaSy..."
+            class="w-full h-12 px-4 rounded-xl border border-border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" />
+        </div>
+        <div class="p-3 bg-muted/50 rounded-xl text-xs text-muted-foreground space-y-1 mt-3">
+          <p class="font-semibold text-foreground">How to get your free API key:</p>
+          <p>1. Visit Google AI Studio (aistudio.google.com/apikey)</p>
+          <p>2. Sign in with your Google account</p>
+          <p>3. Click "Create API Key" and copy it</p>
+          <p>4. Paste it above and click Save</p>
+        </div>
+        <button onclick="saveApiKey()" class="w-full h-12 rounded-xl font-bold bg-primary text-white hover:bg-primary/90 transition mt-4">
+          Save API Key
+        </button>
+      </div>
+      <div class="flex items-start gap-2 text-[10px] text-muted-foreground leading-tight pt-2 border-t">
+        <i class="fas fa-shield-alt mt-0.5 flex-shrink-0"></i>
+        <p>Your API key is stored only in your browser session and is never sent to our servers.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/app.js"></script>
+{% endblock %}

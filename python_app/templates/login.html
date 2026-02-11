@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ "Sign Up" if mode == "signup" else "Sign In" }}{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+  <!-- Background accents -->
+  <div class="absolute top-0 right-0 -z-10 w-[500px] h-[500px] bg-primary-50/60 rounded-full blur-3xl"></div>
+  <div class="absolute bottom-0 left-0 -z-10 w-[500px] h-[500px] bg-accent-50/60 rounded-full blur-3xl"></div>
+
+  <div class="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-primary/10 overflow-hidden">
+    <!-- Header -->
+    <div class="text-center p-8 pb-4">
+      <div class="inline-flex items-center justify-center bg-primary p-3 rounded-2xl mb-4">
+        <i class="fas fa-heartbeat text-white text-2xl"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-foreground">
+        {{ "Create Account" if mode == "signup" else "Welcome Back" }}
+      </h1>
+      <p class="text-muted-foreground text-sm mt-2">
+        {{ "Join HealthAgg to find the best healthcare at the best prices." if mode == "signup"
+           else "Sign in to access HealthAgg's AI-powered healthcare platform." }}
+      </p>
+    </div>
+
+    <!-- Form -->
+    <div class="px-8 pb-8">
+      <form method="POST" action="{{ url_for('signup') if mode == 'signup' else url_for('login') }}" class="space-y-4">
+        {% if mode == "signup" %}
+        <div class="relative">
+          <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+          <input type="text" name="name" placeholder="Full Name" required
+            class="w-full h-12 pl-10 pr-4 rounded-xl border border-border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" />
+        </div>
+        {% endif %}
+
+        <div class="relative">
+          <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+          <input type="email" name="email" placeholder="Email Address" required
+            class="w-full h-12 pl-10 pr-4 rounded-xl border border-border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" />
+        </div>
+
+        <div class="relative">
+          <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm"></i>
+          <input type="password" name="password" id="password-input" placeholder="Password" required
+            class="w-full h-12 pl-10 pr-10 rounded-xl border border-border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" />
+          <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <i id="pw-icon" class="fas fa-eye text-sm"></i>
+          </button>
+        </div>
+
+        {% if error %}
+        <div class="flex items-center gap-2 text-sm text-destructive bg-red-50 p-3 rounded-xl">
+          <i class="fas fa-exclamation-circle flex-shrink-0"></i>
+          {{ error }}
+        </div>
+        {% endif %}
+
+        <button type="submit"
+          class="w-full h-12 rounded-xl font-bold text-base bg-primary text-white hover:bg-primary/90 transition shadow-lg shadow-primary/20">
+          {{ "Create Account" if mode == "signup" else "Sign In" }}
+        </button>
+      </form>
+
+      <div class="mt-6 text-center">
+        <p class="text-sm text-muted-foreground">
+          {{ "Already have an account?" if mode == "signup" else "Don't have an account?" }}
+          <a href="{{ url_for('login') if mode == 'signup' else url_for('signup') }}"
+            class="text-primary font-semibold hover:underline">
+            {{ "Sign In" if mode == "signup" else "Sign Up" }}
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePassword() {
+  const inp = document.getElementById('password-input');
+  const icon = document.getElementById('pw-icon');
+  if (inp.type === 'password') { inp.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash'); }
+  else { inp.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
+}
+</script>
+{% endblock %}
