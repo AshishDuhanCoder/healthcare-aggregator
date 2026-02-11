@@ -186,11 +186,28 @@ export async function POST(req: Request) {
           headers: { "Content-Type": "application/json" },
         })
       } catch (aiError: any) {
-        console.error("[v0] AI with user key failed:", aiError.message)
-        return new Response(
-          JSON.stringify({ error: "Invalid API key or AI service error. Please check your key and try again." }),
-          { status: 401, headers: { "Content-Type": "application/json" } },
-        )
+        const errMsg = (aiError?.message || aiError?.toString() || "").toLowerCase()
+        const statusCode = aiError?.status || aiError?.statusCode || 0
+        const isAuthError =
+          errMsg.includes("api_key_invalid") ||
+          errMsg.includes("api key not valid") ||
+          errMsg.includes("invalid api key") ||
+          errMsg.includes("permission_denied") ||
+          errMsg.includes("unauthorized") ||
+          errMsg.includes("authentication") ||
+          statusCode === 401 ||
+          statusCode === 403
+
+        if (isAuthError) {
+          console.error("[v0] Auth error with user key:", errMsg)
+          return new Response(
+            JSON.stringify({ error: "Invalid API key or AI service error. Please check your key and try again." }),
+            { status: 401, headers: { "Content-Type": "application/json" } },
+          )
+        }
+
+        // Non-auth error (schema, timeout, rate limit, etc.) - fall through to gateway/fallback
+        console.error("[v0] Non-auth AI error, falling through to fallback:", errMsg)
       }
     }
 
