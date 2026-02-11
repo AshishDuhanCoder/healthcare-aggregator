@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { MapPin, Phone, Globe, Clock, AlertTriangle, Navigation, ChevronDown, Loader2, Building2, Stethoscope, Beaker, Pill, Heart, Eye, Brain } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -111,9 +111,10 @@ export function FindCareResults({ query, coords, locationName }: FindCareResults
   }
 
   // Auto-fetch on mount
-  useState(() => {
+  useEffect(() => {
     fetchProviders(activeRadius, 20)
-  })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const displayedProviders = providers.slice(0, displayLimit)
 
