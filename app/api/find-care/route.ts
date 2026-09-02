@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server"
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth"
 
 interface OverpassElement {
   id: number
@@ -119,6 +121,11 @@ function relevanceScore(tags: Record<string, string>, query: string): number {
 }
 
 export async function GET(req: NextRequest) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) {
+    return Response.json({ error: "Authentication required" }, { status: 401 })
+  }
+
   const { searchParams } = req.nextUrl
   const lat = Number.parseFloat(searchParams.get("lat") || "0")
   const lon = Number.parseFloat(searchParams.get("lon") || "0")

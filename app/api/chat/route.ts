@@ -1,6 +1,8 @@
 import { generateObject } from "ai"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { z } from "zod"
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth"
 
 const clinicalSchema = z.object({
   chiefComplaint: z.string().describe("Professional summary of the user's reported problem"),
@@ -148,7 +150,15 @@ const FALLBACK_DATABASE: Record<string, any> = {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) {
+    return new Response(JSON.stringify({ error: "Authentication required" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
+
+  const body = await req.json()
     const { messages, apiKey, provider } = body
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
