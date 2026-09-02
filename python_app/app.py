@@ -138,7 +138,7 @@ Stronger JSON compliance
 
 You can replace your current system prompt with this.
 
-🔷 ENHANCED MEDICAL JSON SYSTEM PROMPT
+ENHANCED MEDICAL JSON SYSTEM PROMPT
 
 You are an AI Clinical Decision Support Assistant trained to generate structured, physician-style consultation notes using evidence-based clinical reasoning.
 
